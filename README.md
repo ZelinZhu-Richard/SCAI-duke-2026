@@ -47,20 +47,20 @@ When customers call support lines, ASR systems transcribe their speech to route 
 ## Dataset
 
 We use curated samples from open, real-world datasets. The current pipeline and scripts are set up for:
-- **Mozilla Common Voice** - Diverse accent and ESL speakers (streaming mode)
+- **Mozilla Common Voice (local download, e.g. `cv-valid-test`)** - English speech with transcript and (sometimes) accent metadata
 
 **Optional/Future Extensions** (not wired into the current scripts):
 - CallHome - Multilingual informal speech
 - GLOBE - Global accent diversity
 
-**Accent Groups Tested (default in `scripts/prepare_data.py`):**
+**Accent Groups Tested (default in `scripts/organize_mozilla_cv.py`):**
 - US English (baseline)
 - Indian English
 - African English
 - UK English (England)
 - Australian English
 
-You can override the defaults with `--accents` to include Spanish-accented or East Asian-accented English if desired.
+You can override the defaults with `--accents` to include any substring tokens that match your dataset’s accent labels (e.g., `irish`, `scottish`, `india`, `german`).
 
 ## Technology Stack
 
@@ -100,7 +100,7 @@ pip install -r requirements.txt
 ## Dependency Safety Notes (macOS / general)
 
 - `requirements.txt` only lists standard PyPI packages (no local paths or Git URLs).
-- The data curation script uses Hugging Face `datasets` with `trust_remote_code=True`. This allows execution of dataset-provided code. If your environment policy forbids this, set `trust_remote_code=False` in `scripts/prepare_data.py` and be prepared to pin a dataset version or use a pre-downloaded dataset.
+- The data organization script reads local Common Voice metadata (`*.tsv`) and copies audio files into `data/audio/`.
 - For extra caution, install in a fresh virtual environment and review package metadata before installing.
 
 ---
@@ -134,26 +134,39 @@ brew install ffmpeg
 
 ### **Step 2: Download Audio Samples** (10-30 minutes)
 
-Download audio files from Mozilla Common Voice dataset:
+Download the Common Voice demo dataset locally (e.g., `cv-valid-test`) and unzip it.
+Assume it lives at `~/Downloads/cv-valid-test`.
 
 ```bash
 # Option A: Small test (5 samples per accent = 20 total files)
 # Recommended for first run to test the pipeline quickly
-python scripts/prepare_data.py --samples 5 --accents us indian african england
+python scripts/organize_mozilla_cv.py \
+  --cv_dir ~/Downloads/cv-valid-test \
+  --output data/audio \
+  --samples 5 \
+  --accents us india african england \
+  --allow_no_metadata \
+  --total_samples 20
 
 # Option B: Full dataset (20 samples per accent = 80 total files)
 # Use this for your final hackathon submission
-python scripts/prepare_data.py --samples 20 --accents us indian african england
+python scripts/organize_mozilla_cv.py \
+  --cv_dir ~/Downloads/cv-valid-test \
+  --output data/audio \
+  --samples 20 \
+  --accents us india african england \
+  --allow_no_metadata \
+  --total_samples 80
 ```
 
 **What this does:**
-- Downloads audio clips from Mozilla Common Voice
-- Saves them to `data/audio/` with names like `us_001.wav`, `indian_002.wav`, etc.
-- Takes 10-30 minutes depending on your internet speed
+- If metadata `*.tsv` exists: uses accent + transcript info to copy balanced samples
+- If no metadata: copies `--total_samples` audio files into `data/audio/`
+- Creates `data/ground_truth_template.csv` (you fill in missing fields)
 
 **Verify it worked:**
 ```bash
-ls data/audio/*.wav | wc -l   # Should show 20 or 80 files
+ls data/audio/* | wc -l   # Should show 20 or 80 files
 ```
 
 ---
@@ -166,6 +179,8 @@ You need to manually:
 1. Listen to each audio file
 2. Write down the correct transcription
 3. Assign the correct intent (pay_bill, reset_password, report_outage, account_info)
+
+`organize_mozilla_cv.py` creates `data/ground_truth_template.csv` to speed this up.
 
 **Edit `data/ground_truth.csv`:**
 
@@ -377,8 +392,8 @@ After completing all steps, you have:
 # Setup (one-time)
 pip install -r requirements.txt
 
-# Download data (10-30 min)
-python scripts/prepare_data.py --samples 5 --accents us indian african england
+# Organize local data (5-10 min)
+python scripts/organize_mozilla_cv.py --cv_dir ~/Downloads/cv-valid-test --output data/audio --samples 5 --accents us india african england
 
 # Manually create data/ground_truth.csv (30 min - 3 hours)
 
@@ -443,10 +458,10 @@ cat data/ground_truth.csv
 # Filenames must match exactly (case-sensitive!)
 ```
 
-### Problem: Dataset download is very slow
+### Problem: Dataset organization is very slow
 **Solution:** Start with fewer samples
 ```bash
-python scripts/prepare_data.py --samples 5  # Just 20 files total
+python scripts/organize_mozilla_cv.py --cv_dir ~/Downloads/cv-valid-test --output data/audio --samples 5
 ```
 
 ### Problem: Whisper transcription is too slow
@@ -466,13 +481,13 @@ head -20 results/transcripts.csv
 ```
 
 ### Problem: Ground truth CSV has wrong accent groups
-**Solution:** Make sure accent groups match what you used in `prepare_data.py`
+**Solution:** Make sure accent groups match what you used in `organize_mozilla_cv.py`
 
 Default accents are: `us`, `indian`, `african`, `england`
 
-If your ground truth uses different names (like "Spanish" or "Chinese"), run prepare_data.py with matching accents:
+If your ground truth uses different names (like "Spanish" or "Chinese"), run organize_mozilla_cv.py with matching accents:
 ```bash
-python scripts/prepare_data.py --samples 5 --accents us spanish chinese
+python scripts/organize_mozilla_cv.py --cv_dir ~/Downloads/cv-valid-test --output data/audio --samples 5 --accents us spanish chinese
 ```
 
 ---
@@ -489,7 +504,8 @@ SCAI-Duke-2026/
 ├── models/
 │   └── whisper/            # Cached Whisper models
 ├── scripts/
-│   ├── prepare_data.py     # Data curation
+│   ├── organize_mozilla_cv.py # Local data organizer (cv-valid-test)
+│   ├── prepare_data.py     # Optional HF-based curation
 │   ├── run_whisper.py      # ASR transcription
 │   ├── classify_intent.py  # Intent classification
 │   ├── calculate_metrics.py # Metrics computation

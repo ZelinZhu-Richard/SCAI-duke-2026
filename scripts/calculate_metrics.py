@@ -10,7 +10,7 @@ import argparse
 import json
 import pandas as pd
 import Levenshtein
-from scripts._python_version_check import ensure_python_3_12_12
+from _python_version_check import ensure_python_3_12_12
 
 
 def calculate_cer(reference, hypothesis):

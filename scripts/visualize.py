@@ -12,7 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from scripts._python_version_check import ensure_python_3_12_12
+from _python_version_check import ensure_python_3_12_12
 
 # Set style
 sns.set_style("whitegrid")
