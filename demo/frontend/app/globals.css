@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f0e9df;
+  --foreground: #1e120b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-serif: "Times New Roman", "Georgia", "Garamond", serif;
+  --font-mono: "SF Mono", "Menlo", "Monaco", monospace;
+
+  /* ─── Backgrounds (light → warm) ─── */
+  --color-page: #f0e9df;          /* linen — main background */
+  --color-cream: #faf7f2;         /* warm white — card surfaces */
+  --color-porcelain: #fdfcfa;     /* near-white — elevated surfaces */
+  --color-sand: #e8dfd3;          /* pale sand — inset/recessed */
+  --color-khaki: #ddd2c3;         /* ecru — deeper inset */
+
+  /* ─── Text hierarchy (dark → light, each distinct) ─── */
+  --color-espresso: #1e120b;      /* display headings */
+  --color-chocolate: #3a2519;     /* subheadings, strong text */
+  --color-tobacco: #5c4033;       /* body copy */
+  --color-cognac: #8b6f56;        /* secondary / descriptive text */
+  --color-dune: #ab9680;          /* tertiary — labels, captions */
+  --color-flax: #c4b49e;          /* muted — timestamps, hints */
+  --color-bisque: #d8cbba;        /* very muted — decorative text */
+
+  /* ─── Borders & rules (subtle → strong) ─── */
+  --color-rule: #ece5da;          /* faintest rule */
+  --color-border: #ddd2c3;       /* default border */
+  --color-edge: #c9bba8;          /* stronger border */
+  --color-camel: #b8a08a;         /* strong / selected border */
+
+  /* ─── Accent / interactive ─── */
+  --color-umber: #3a2519;         /* button bg, strong accent */
+  --color-walnut: #4d3322;        /* button hover */
+  --color-teak: #6b4c36;          /* links */
+
+  /* ─── Semantic (muted, tasteful) ─── */
+  --color-moss: #5d6b4c;          /* good / correct */
+  --color-patina: #8f7234;        /* caution / warning */
+  --color-claret: #7d3f33;        /* error / bad */
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Times New Roman", Georgia, Garamond, serif;
+  line-height: 1.75;
+}
+
+::selection {
+  background: #c9bba8;
+  color: #1e120b;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c9bba8; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #b8a08a; }
+
+audio { filter: sepia(0.2) saturate(0.8) brightness(1.02); }
