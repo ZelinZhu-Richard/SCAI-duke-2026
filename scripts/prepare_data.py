@@ -11,6 +11,7 @@ import os
 from datasets import load_dataset
 import soundfile as sf
 from tqdm import tqdm
+from scripts._python_version_check import ensure_python_3_12_12
 
 
 def curate_samples(target_per_group=20, output_dir="data/audio", target_accents=None):
@@ -95,6 +96,7 @@ def curate_samples(target_per_group=20, output_dir="data/audio", target_accents=
 
 
 def main():
+    ensure_python_3_12_12()
     parser = argparse.ArgumentParser(
         description="Curate audio samples for ASR Equity Benchmark"
     )

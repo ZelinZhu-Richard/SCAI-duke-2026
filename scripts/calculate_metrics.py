@@ -10,6 +10,7 @@ import argparse
 import json
 import pandas as pd
 import Levenshtein
+from scripts._python_version_check import ensure_python_3_12_12
 
 
 def calculate_cer(reference, hypothesis):
@@ -66,20 +67,21 @@ def compute_cer_by_group(intents_df):
     return cer_by_group
 
 
-def compute_intent_accuracy(intents_df):
+def compute_intent_accuracy(intents_df, correctness_col="intent_correct"):
     """
     Calculate intent classification accuracy by group
 
     Args:
         intents_df (pd.DataFrame): DataFrame with intent predictions
+        correctness_col (str): Column indicating correctness (True/False)
 
     Returns:
         pd.DataFrame: Accuracy statistics by group
     """
-    print(f"\nCalculating Intent Accuracy...")
+    print(f"\nCalculating Intent Accuracy ({correctness_col})...")
 
     accuracy_by_group = intents_df.groupby("accent_group").agg({
-        "intent_correct": ["mean", "sum", "count"]
+        correctness_col: ["mean", "sum", "count"]
     })
 
     accuracy_by_group.columns = ["accuracy", "correct_count", "total"]
@@ -92,7 +94,7 @@ def compute_intent_accuracy(intents_df):
     return accuracy_by_group
 
 
-def compute_disparity_index(intents_df, baseline_group="US"):
+def compute_disparity_index(intents_df, baseline_group="US", correctness_col="intent_correct"):
     """
     Calculate Disparity Index = error_rate(group) / error_rate(baseline)
     Values > 1 indicate worse performance than baseline
@@ -100,16 +102,17 @@ def compute_disparity_index(intents_df, baseline_group="US"):
     Args:
         intents_df (pd.DataFrame): DataFrame with intent correctness
         baseline_group (str): Baseline accent group (default: US)
+        correctness_col (str): Column indicating correctness (True/False)
 
     Returns:
         pd.DataFrame: Disparity index by group
     """
-    print(f"\nCalculating Disparity Index (baseline: {baseline_group})...")
+    print(f"\nCalculating Disparity Index (baseline: {baseline_group}, col: {correctness_col})...")
 
     # Calculate error rates
     error_rates = intents_df.groupby("accent_group").agg({
-        "intent_correct": lambda x: (1 - x.mean()) * 100  # error rate as percentage
-    }).rename(columns={"intent_correct": "error_rate"})
+        correctness_col: lambda x: (1 - x.mean()) * 100  # error rate as percentage
+    }).rename(columns={correctness_col: "error_rate"})
 
     # Get baseline error rate
     if baseline_group not in error_rates.index:
@@ -179,7 +182,7 @@ def find_failure_examples(intents_df, num_examples=5):
     return failures, successes
 
 
-def save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, output_path):
+def save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, output_path, accuracy_after=None, disparity_after=None):
     """
     Save all metrics to JSON file for easy loading
 
@@ -187,6 +190,8 @@ def save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, output_path
         cer_by_group (pd.DataFrame): CER statistics
         accuracy_by_group (pd.DataFrame): Accuracy statistics
         disparity_df (pd.DataFrame): Disparity index
+        accuracy_after (pd.DataFrame): Accuracy after benchmark (optional)
+        disparity_after (pd.DataFrame): Disparity after benchmark (optional)
         output_path (str): Output JSON file path
     """
     metrics = {
@@ -195,6 +200,11 @@ def save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, output_path
         "disparity_index": disparity_df.to_dict()
     }
 
+    if accuracy_after is not None:
+        metrics["accuracy_by_group_after"] = accuracy_after.to_dict()
+    if disparity_after is not None:
+        metrics["disparity_index_after"] = disparity_after.to_dict()
+
     with open(output_path, "w") as f:
         json.dump(metrics, f, indent=2)
 
@@ -202,6 +212,7 @@ def save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, output_path
 
 
 def main():
+    ensure_python_3_12_12()
     parser = argparse.ArgumentParser(
         description="Calculate equity metrics for ASR benchmark"
     )
@@ -238,14 +249,20 @@ def main():
 
     # Calculate metrics
     cer_by_group = compute_cer_by_group(intents_df)
-    accuracy_by_group = compute_intent_accuracy(intents_df)
-    disparity_df = compute_disparity_index(intents_df, baseline_group=args.baseline)
+    accuracy_by_group = compute_intent_accuracy(intents_df, correctness_col="intent_correct")
+    disparity_df = compute_disparity_index(intents_df, baseline_group=args.baseline, correctness_col="intent_correct")
+
+    accuracy_after = None
+    disparity_after = None
+    if "intent_correct_after" in intents_df.columns:
+        accuracy_after = compute_intent_accuracy(intents_df, correctness_col="intent_correct_after")
+        disparity_after = compute_disparity_index(intents_df, baseline_group=args.baseline, correctness_col="intent_correct_after")
 
     # Find examples
     find_failure_examples(intents_df)
 
     # Save metrics
-    save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, args.output)
+    save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, args.output, accuracy_after, disparity_after)
 
     # Overall summary
     print(f"\n{'='*70}")
@@ -254,8 +271,12 @@ def main():
     print(f"Total samples: {len(intents_df)}")
     print(f"Accent groups: {len(intents_df['accent_group'].unique())}")
     print(f"Overall CER: {intents_df['cer'].mean():.1%}")
-    print(f"Overall intent accuracy: {intents_df['intent_correct'].mean()*100:.1f}%")
-    print(f"Max disparity: {disparity_df['disparity_index'].max():.2f}×")
+    print(f"Overall intent accuracy (before): {intents_df['intent_correct'].mean()*100:.1f}%")
+    if "intent_correct_after" in intents_df.columns:
+        print(f"Overall intent accuracy (after):  {intents_df['intent_correct_after'].mean()*100:.1f}%")
+    print(f"Max disparity (before): {disparity_df['disparity_index'].max():.2f}×")
+    if disparity_after is not None:
+        print(f"Max disparity (after):  {disparity_after['disparity_index'].max():.2f}×")
 
 
 if __name__ == "__main__":

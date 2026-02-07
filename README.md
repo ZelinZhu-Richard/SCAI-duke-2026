@@ -68,7 +68,7 @@ You can override the defaults with `--accents` to include Spanish-accented or Ea
 - **Intent Classification**: Keyword-based or zero-shot (BART)
 - **Metrics**: Character Error Rate, Intent Accuracy, Disparity Index
 - **Visualization**: Matplotlib, Seaborn
-- **Languages**: Python 3.x
+- **Languages**: Python **3.12.12** (required)
 - **Libraries**: PyTorch, Transformers, pandas, numpy
 
 ## Installation
@@ -79,7 +79,7 @@ git clone https://github.com/[your-repo]/SCAI-Duke-2026.git
 cd SCAI-Duke-2026
 
 # Create virtual environment (recommended)
-python3 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # macOS: install ffmpeg (Whisper audio decoding dependency)
@@ -94,6 +94,8 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 ```
+
+**Python requirement:** This project requires **Python 3.12.12**. The scripts will exit if a different version is used.
 
 ## Dependency Safety Notes (macOS / general)
 

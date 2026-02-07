@@ -12,6 +12,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+from scripts._python_version_check import ensure_python_3_12_12
 
 # Set style
 sns.set_style("whitegrid")
@@ -233,6 +234,7 @@ def create_combined_summary(intents_df, output_dir="visualizations"):
 
 
 def main():
+    ensure_python_3_12_12()
     parser = argparse.ArgumentParser(
         description="Create visualizations for ASR equity benchmark"
     )

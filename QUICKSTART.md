@@ -6,12 +6,14 @@
 
 ```bash
 # Create virtual environment
-python3 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install all dependencies
 pip install -r requirements.txt
 ```
+
+**Python requirement:** This project requires **Python 3.12.12**. The scripts will exit if a different version is used.
 
 **Windows (Lenovo ThinkPad)**: install `ffmpeg` for Whisper audio decoding.
 ```bash
@@ -85,6 +87,9 @@ python scripts/classify_intent.py \
 
 # Expected: results/intents.csv with intent predictions
 ```
+
+This now includes both **before** and **after** benchmark intent columns:
+`intent_correct` and `intent_correct_after`.
 
 ### Hour 3-4: Calculate Metrics
 

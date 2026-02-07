@@ -8,6 +8,7 @@ Usage:
 
 import argparse
 import pandas as pd
+from scripts._python_version_check import ensure_python_3_12_12
 
 
 def classify_intent_keyword(transcript):
@@ -57,6 +58,40 @@ def classify_intent_keyword(transcript):
     else:
         return "unknown"
 
+def normalize_transcript(transcript):
+    """
+    Lightweight normalization to simulate "after-benchmark" improvements.
+    This is intentionally simple and transparent for demo purposes.
+    """
+    if not transcript or pd.isna(transcript):
+        return ""
+
+    text = str(transcript).lower()
+
+    replacements = [
+        ("internets", "internet"),
+        ("inter net", "internet"),
+        ("pay bill", "pay bill"),
+        ("paybell", "pay bill"),
+        ("payable", "pay bill"),
+        ("pass word", "password"),
+        ("log-in", "login"),
+        ("log in", "login"),
+        ("sign in", "login"),
+        ("acct", "account"),
+        ("accnt", "account"),
+        ("out age", "outage"),
+        ("dis connected", "disconnected"),
+        ("not workin", "not working"),
+    ]
+
+    for old, new in replacements:
+        text = text.replace(old, new)
+
+    # Collapse repeated spaces
+    text = " ".join(text.split())
+    return text
+
 
 def classify_all(transcripts_csv, ground_truth_csv, output_csv="results/intents.csv"):
     """
@@ -95,31 +130,39 @@ def classify_all(transcripts_csv, ground_truth_csv, output_csv="results/intents.
         print(f"\n❌ No matching filenames found! Check your data.")
         return None
 
-    # Classify transcribed text
+    # Classify transcribed text (before benchmark)
     print(f"\nClassifying transcripts...")
     merged["predicted_intent"] = merged["transcribed_text"].apply(classify_intent_keyword)
 
     # Also classify true transcript for sanity check
     merged["true_intent_check"] = merged["true_transcript"].apply(classify_intent_keyword)
 
-    # Mark correctness
+    # Mark correctness (before benchmark)
     merged["intent_correct"] = merged["predicted_intent"] == merged["true_intent"]
+
+    # Simulated "after benchmark" improvements via normalization
+    merged["transcribed_text_normalized"] = merged["transcribed_text"].apply(normalize_transcript)
+    merged["predicted_intent_after"] = merged["transcribed_text_normalized"].apply(classify_intent_keyword)
+    merged["intent_correct_after"] = merged["predicted_intent_after"] == merged["true_intent"]
 
     # Calculate basic stats
     accuracy = merged["intent_correct"].mean() * 100
+    accuracy_after = merged["intent_correct_after"].mean() * 100
     print(f"\n{'='*60}")
     print(f"Classification Results")
     print(f"{'='*60}")
-    print(f"Overall Intent Accuracy: {accuracy:.2f}%")
+    print(f"Overall Intent Accuracy (before): {accuracy:.2f}%")
+    print(f"Overall Intent Accuracy (after):  {accuracy_after:.2f}%")
     print(f"Correct: {merged['intent_correct'].sum()}")
     print(f"Incorrect: {(~merged['intent_correct']).sum()}")
 
     # Accuracy by accent group
     if "accent_group" in merged.columns:
         print(f"\nAccuracy by Accent Group:")
-        by_group = merged.groupby("accent_group")["intent_correct"].mean() * 100
-        for group, acc in by_group.items():
-            print(f"  {group:15s}: {acc:6.2f}%")
+        by_group_before = merged.groupby("accent_group")["intent_correct"].mean() * 100
+        by_group_after = merged.groupby("accent_group")["intent_correct_after"].mean() * 100
+        for group in by_group_before.index:
+            print(f"  {group:15s}: {by_group_before[group]:6.2f}% → {by_group_after[group]:6.2f}%")
 
     # Save results
     merged.to_csv(output_csv, index=False)
@@ -129,6 +172,7 @@ def classify_all(transcripts_csv, ground_truth_csv, output_csv="results/intents.
 
 
 def main():
+    ensure_python_3_12_12()
     parser = argparse.ArgumentParser(
         description="Classify customer support call intents"
     )

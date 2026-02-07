@@ -95,6 +95,13 @@ print(f"   Expected: {failure_example['true_intent']}")
 print(f"   Predicted: {failure_example['predicted_intent']} ❌")
 print(f"   💥 Call misrouted to wrong department!")
 
+if "predicted_intent_after" in failure_example:
+    print(f"\n🛠️ After Benchmark (Post-Processing):")
+    print(f"   Predicted: {failure_example['predicted_intent_after']}")
+    if "intent_correct_after" in failure_example:
+        status = "✅ Corrected" if failure_example["intent_correct_after"] else "❌ Still wrong"
+        print(f"   Status: {status}")
+
 print(f"\n📊 Metrics:")
 print(f"   Character Error Rate: {failure_example['cer']:.1%}")
 print(f"   Status: Service denied due to ASR failure")
@@ -117,8 +124,11 @@ print("="*70)
 print(f"\n📊 Dataset Overview:")
 print(f"   Total calls analyzed: {len(intents_df)}")
 print(f"   Accent groups tested: {len(intents_df['accent_group'].unique())}")
-print(f"   Overall intent accuracy: {intents_df['intent_correct'].mean()*100:.1f}%")
-print(f"   Overall misrouting rate: {(1-intents_df['intent_correct'].mean())*100:.1f}%")
+print(f"   Overall intent accuracy (before): {intents_df['intent_correct'].mean()*100:.1f}%")
+print(f"   Overall misrouting rate (before): {(1-intents_df['intent_correct'].mean())*100:.1f}%")
+if "intent_correct_after" in intents_df.columns:
+    print(f"   Overall intent accuracy (after):  {intents_df['intent_correct_after'].mean()*100:.1f}%")
+    print(f"   Overall misrouting rate (after):  {(1-intents_df['intent_correct_after'].mean())*100:.1f}%")
 
 # By accent group
 print(f"\n📈 Performance by Accent Group:")
@@ -127,9 +137,14 @@ by_group = intents_df.groupby("accent_group").agg({
     "intent_correct": "mean",
     "filename": "count"
 })
-by_group.columns = ["Avg CER", "Intent Accuracy", "Sample Count"]
+by_group.columns = ["Avg CER", "Intent Accuracy (Before)", "Sample Count"]
 by_group["Avg CER"] = (by_group["Avg CER"] * 100).round(2)
-by_group["Intent Accuracy"] = (by_group["Intent Accuracy"] * 100).round(2)
+by_group["Intent Accuracy (Before)"] = (by_group["Intent Accuracy (Before)"] * 100).round(2)
+
+if "intent_correct_after" in intents_df.columns:
+    by_group_after = intents_df.groupby("accent_group")["intent_correct_after"].mean() * 100
+    by_group["Intent Accuracy (After)"] = by_group_after.round(2)
+
 print(by_group.sort_values("Avg CER"))
 
 # %% [markdown]
@@ -186,6 +201,15 @@ print(f"\n🎯 Intent Classification:")
 print(f"   • Baseline accuracy: {baseline_accuracy*100:.1f}%")
 print(f"   • Worst performing group: {worst_accuracy_group} at {worst_accuracy*100:.1f}%")
 print(f"   • This means {(1-worst_accuracy)*100:.1f}% of {worst_accuracy_group} speakers are misrouted!")
+
+if "intent_correct_after" in intents_df.columns:
+    baseline_accuracy_after = intents_df[intents_df["accent_group"] == "US"]["intent_correct_after"].mean()
+    worst_accuracy_group_after = intents_df.groupby("accent_group")["intent_correct_after"].mean().idxmin()
+    worst_accuracy_after = intents_df[intents_df["accent_group"] == worst_accuracy_group_after]["intent_correct_after"].mean()
+    print(f"\n🎯 Intent Classification (After Benchmark):")
+    print(f"   • Baseline accuracy: {baseline_accuracy_after*100:.1f}%")
+    print(f"   • Worst performing group: {worst_accuracy_group_after} at {worst_accuracy_after*100:.1f}%")
+    print(f"   • Misrouting drops to {(1-worst_accuracy_after)*100:.1f}% for that group")
 
 print(f"\n💡 Impact:")
 print(f"   • Non-native speakers experience {disparity:.1f}× more transcription errors")
