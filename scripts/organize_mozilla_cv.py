@@ -12,7 +12,10 @@ import argparse
 import pandas as pd
 import shutil
 from pathlib import Path
-from _python_version_check import ensure_python_3_12_12
+try:
+    from _python_version_check import ensure_python_3_12_12
+except ModuleNotFoundError:
+    from scripts._python_version_check import ensure_python_3_12_12
 
 
 SYNONYMS = {

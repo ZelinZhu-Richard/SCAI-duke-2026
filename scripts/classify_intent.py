@@ -8,8 +8,11 @@ Usage:
 
 import argparse
 import pandas as pd
-from _python_version_check import ensure_python_3_12_12
 from pathlib import Path
+try:
+    from _python_version_check import ensure_python_3_12_12
+except ModuleNotFoundError:
+    from scripts._python_version_check import ensure_python_3_12_12
 
 
 def classify_intent_keyword(transcript):

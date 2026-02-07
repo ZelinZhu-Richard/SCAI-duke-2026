@@ -33,7 +33,10 @@ from datasets import load_dataset
 from datasets.data_files import EmptyDatasetError
 import soundfile as sf
 from tqdm import tqdm
-from _python_version_check import ensure_python_3_12_12
+try:
+    from _python_version_check import ensure_python_3_12_12
+except ModuleNotFoundError:
+    from scripts._python_version_check import ensure_python_3_12_12
 
 
 def _normalize(s):

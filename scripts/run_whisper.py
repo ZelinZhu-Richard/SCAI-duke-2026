@@ -12,7 +12,10 @@ from pathlib import Path
 import pandas as pd
 import whisper
 from tqdm import tqdm
-from _python_version_check import ensure_python_3_12_12
+try:
+    from _python_version_check import ensure_python_3_12_12
+except ModuleNotFoundError:
+    from scripts._python_version_check import ensure_python_3_12_12
 
 
 def transcribe_all(audio_dir, model_size="tiny", output_csv="results/transcripts.csv"):

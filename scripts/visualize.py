@@ -13,7 +13,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import Levenshtein
-from _python_version_check import ensure_python_3_12_12
+try:
+    from _python_version_check import ensure_python_3_12_12
+except ModuleNotFoundError:
+    from scripts._python_version_check import ensure_python_3_12_12
 
 # Set style
 sns.set_style("whitegrid")
@@ -28,6 +31,20 @@ def calculate_cer(reference, hypothesis):
         return 1.0 if len(hypothesis) > 0 else 0.0
     distance = Levenshtein.distance(str(reference).lower(), str(hypothesis).lower())
     return distance / len(reference)
+
+
+def coerce_bool(series):
+    """
+    Robust bool conversion for columns that may be bool, numeric, or strings.
+    """
+    lowered = series.astype(str).str.strip().str.lower()
+    truthy = {"true", "1", "yes", "y"}
+    falsy = {"false", "0", "no", "n"}
+    coerced = lowered.map(lambda x: True if x in truthy else (False if x in falsy else None))
+    if coerced.isna().any():
+        # Fall back to pandas truthiness rules for any unmatched values
+        coerced = series.astype(bool)
+    return coerced
 
 
 def create_cer_chart(intents_df, output_dir="visualizations"):
@@ -47,7 +64,7 @@ def create_cer_chart(intents_df, output_dir="visualizations"):
 
     groups = cer_by_group.index
     cer_means = cer_by_group["mean"] * 100
-    cer_stds = cer_by_group["std"] * 100
+    cer_stds = (cer_by_group["std"] * 100).fillna(0).clip(lower=0)
 
     # Create bars
     bars = ax.bar(groups, cer_means, yerr=cer_stds, capsize=5,
@@ -71,7 +88,16 @@ def create_cer_chart(intents_df, output_dir="visualizations"):
                 f'{height:.1f}%', ha='center', va='bottom', fontsize=12, fontweight="bold")
 
     ax.legend(fontsize=12)
-    ax.set_ylim(0, max(cer_means) * 1.2)
+    cer_ymax = max(cer_means) * 1.2
+    if cer_ymax <= 0:
+        cer_ymax = 5
+        ax.text(
+            0.5, 0.95,
+            "All CER values are 0%.",
+            transform=ax.transAxes,
+            ha="center", va="top", fontsize=10
+        )
+    ax.set_ylim(0, cer_ymax)
     plt.xticks(rotation=15, ha="right")
     plt.tight_layout()
 
@@ -117,7 +143,16 @@ def create_intent_error_chart(intents_df, output_dir="visualizations"):
         ax.text(bar.get_x() + bar.get_width()/2., height + 0.5,
                 f'{height:.1f}%', ha='center', va='bottom', fontsize=12, fontweight="bold")
 
-    ax.set_ylim(0, max(values) * 1.3)
+    y_max = max(values) * 1.3
+    if y_max <= 0:
+        y_max = 5
+        ax.text(
+            0.5, 0.95,
+            "All misclassification rates are 0%. Check intent labels if unexpected.",
+            transform=ax.transAxes,
+            ha="center", va="top", fontsize=10
+        )
+    ax.set_ylim(0, y_max)
     plt.xticks(rotation=15, ha="right")
     plt.tight_layout()
 
@@ -147,10 +182,13 @@ def create_disparity_heatmap(intents_df, baseline_group="US", output_dir="visual
         baseline_group = error_rates.index[0]
 
     baseline_error = error_rates.loc[baseline_group, "error_rate"]
-    if baseline_error == 0:
-        baseline_error = 0.01
-
-    error_rates["disparity_index"] = error_rates["error_rate"] / baseline_error
+    if baseline_error == 0 and (error_rates["error_rate"] == 0).all():
+        # All groups have perfect intent accuracy; represent equal disparity explicitly.
+        error_rates["disparity_index"] = 1.0
+    else:
+        if baseline_error == 0:
+            baseline_error = 0.01
+        error_rates["disparity_index"] = error_rates["error_rate"] / baseline_error
 
     # Sort by disparity index
     error_rates = error_rates.sort_values("disparity_index")
@@ -281,6 +319,10 @@ def main():
     # Load data
     intents_df = pd.read_csv(args.input)
     print(f"\nLoaded {len(intents_df)} samples from {len(intents_df['accent_group'].unique())} accent groups")
+
+    if "intent_correct" not in intents_df.columns:
+        raise SystemExit("❌ Missing 'intent_correct' column; run classify_intent.py first.")
+    intents_df["intent_correct"] = coerce_bool(intents_df["intent_correct"])
 
     # Ensure CER exists (compute if missing)
     if "cer" not in intents_df.columns:
