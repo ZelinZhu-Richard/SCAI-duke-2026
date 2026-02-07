@@ -85,6 +85,12 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # macOS: install ffmpeg (Whisper audio decoding dependency)
 # brew install ffmpeg
 
+# Windows (Lenovo ThinkPad or other): install ffmpeg
+# Use winget (recommended):
+# winget install Gyan.FFmpeg
+# Or use chocolatey:
+# choco install ffmpeg
+
 # Install dependencies
 pip install -r requirements.txt
 ```

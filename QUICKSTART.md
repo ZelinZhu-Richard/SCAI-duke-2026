@@ -13,6 +13,15 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+**Windows (Lenovo ThinkPad)**: install `ffmpeg` for Whisper audio decoding.
+```bash
+# Recommended
+winget install Gyan.FFmpeg
+
+# Or with Chocolatey
+choco install ffmpeg
+```
+
 ### 2. Curate Data (CRITICAL - Do before hackathon!)
 
 ```bash
