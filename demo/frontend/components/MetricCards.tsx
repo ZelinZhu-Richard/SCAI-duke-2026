@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils";
 
 interface Props {
   summary: {
-    avgCER: number;
-    intentAccuracy: number;
-    misroutingRate: number;
+    avgWER: number;
+    avgIntentError: number;
     maxDisparityIndex: number;
+    totalSamples: number;
   };
 }
 
@@ -27,28 +27,28 @@ export default function MetricCards({ summary }: Props) {
     status: "good" | "warning" | "bad";
   }[] = [
     {
-      label: "Avg. CER",
-      value: `${(summary.avgCER * 100).toFixed(1)}%`,
-      note: "Character error rate",
-      status: summary.avgCER < 0.1 ? "good" : summary.avgCER < 0.2 ? "warning" : "bad",
+      label: "Avg. WER",
+      value: `${(summary.avgWER * 100).toFixed(1)}%`,
+      note: "Word error rate (weighted)",
+      status: summary.avgWER < 0.1 ? "good" : summary.avgWER < 0.25 ? "warning" : "bad",
     },
     {
-      label: "Intent Accuracy",
-      value: `${(summary.intentAccuracy * 100).toFixed(1)}%`,
-      note: "Correctly classified",
-      status: summary.intentAccuracy > 0.85 ? "good" : summary.intentAccuracy > 0.7 ? "warning" : "bad",
-    },
-    {
-      label: "Misrouting",
-      value: `${(summary.misroutingRate * 100).toFixed(1)}%`,
-      note: "Wrong department",
-      status: summary.misroutingRate < 0.1 ? "good" : summary.misroutingRate < 0.2 ? "warning" : "bad",
+      label: "Intent Error",
+      value: `${(summary.avgIntentError * 100).toFixed(1)}%`,
+      note: "Misclassified intent (smoothed)",
+      status: summary.avgIntentError < 0.1 ? "good" : summary.avgIntentError < 0.25 ? "warning" : "bad",
     },
     {
       label: "Max Disparity",
       value: summary.maxDisparityIndex.toFixed(2),
-      note: "> 1.0 means unequal",
-      status: summary.maxDisparityIndex < 1.3 ? "good" : summary.maxDisparityIndex < 2.0 ? "warning" : "bad",
+      note: "Higher = worse bias vs other accents",
+      status: summary.maxDisparityIndex < 1.0 ? "good" : summary.maxDisparityIndex < 1.5 ? "warning" : "bad",
+    },
+    {
+      label: "Total Samples",
+      value: summary.totalSamples.toString(),
+      note: "Audio clips evaluated",
+      status: "good",
     },
   ];
 

@@ -9,24 +9,24 @@ interface Section {
 
 const SECTIONS: Section[] = [
   {
-    title: "Character Error Rate",
+    title: "Word Error Rate (WER)",
     content:
-      "The fraction of characters the ASR system gets wrong\u2014insertions, deletions, and substitutions. A CER of 10% means roughly 1 in 10 characters is incorrect. In support calls, even small errors change meaning: \u201cpay\u201d misheard as \u201cbay\u201d can route a call to the wrong department.",
+      "The fraction of words the ASR system gets wrong\u2014insertions, deletions, and substitutions. A WER of 26% means roughly 1 in 4 words is incorrect. In support calls, even small errors change meaning: \u201cpay\u201d misheard as \u201cbay\u201d can route a call to the wrong department.",
   },
   {
-    title: "Misrouting Rate",
+    title: "Intent Error Rate",
     content:
-      "How often a caller would be sent to the wrong department because the system misrecognized their intent. \u201cCancel my service\u201d heard as \u201chandle my service\u201d routes to general support instead of cancellations.",
+      "How often the system misclassifies what the caller wants. \u201cCancel my service\u201d heard as \u201chandle my service\u201d routes to general support instead of cancellations. The smoothed rate accounts for small sample sizes to give a more reliable estimate.",
   },
   {
     title: "Disparity Index",
     content:
-      "The ratio of one accent group\u2019s error rate to the best-performing group\u2019s. 1.0 means equal performance; 2.0 means twice the errors. Above 1.5 indicates systematic bias against that accent.",
+      "A comparison metric across accent groups. It measures how much worse one accent performs relative to others. The higher the value, the worse the disparity. A value above 1.5 signals that speakers of that accent experience significantly more errors than other groups, indicating systemic bias.",
   },
   {
     title: "Why this matters",
     content:
-      "Customer support is access to services. When ASR works poorly for certain accents, those callers wait longer, repeat themselves, and get misrouted. This disproportionately affects non-native speakers and people from underrepresented regions.",
+      "Customer support is access to services. When ASR works poorly for certain accents or speech styles, those callers wait longer, repeat themselves, and get misrouted. This disproportionately affects non-native speakers, ESL communities, and people from underrepresented regions\u2014effectively denying them equitable service.",
   },
 ];
 

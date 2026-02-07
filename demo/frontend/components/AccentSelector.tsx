@@ -42,7 +42,7 @@ export default function AccentSelector({ available, selected, onChange }: Props)
           );
         })}
       </div>
-      <p className="mt-2 text-[11px] text-flax">
+      <p className="mt-2 text-[11px] font-semibold text-espresso">
         At least one required. Click to toggle.
       </p>
     </div>
