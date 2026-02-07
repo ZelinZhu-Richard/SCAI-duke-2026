@@ -67,6 +67,8 @@ def organize_cv_data(
     path_column="path",
     total_samples=20,
     allow_no_metadata=True,
+    metadata_csv=None,
+    write_ground_truth=False,
 ):
     """
     Organize Mozilla Common Voice data by selecting samples per accent
@@ -85,12 +87,24 @@ def organize_cv_data(
 
     # Find metadata file
     metadata_file = None
-    for name in ['validated.tsv', 'test.tsv', 'dev.tsv', 'train.tsv']:
-        candidate = cv_path / name
-        if candidate.exists():
-            metadata_file = candidate
-            print(f"Found metadata file: {metadata_file}")
-            break
+    if metadata_csv:
+        metadata_file = Path(metadata_csv).expanduser()
+        if metadata_file.exists():
+            print(f"Using metadata CSV: {metadata_file}")
+        else:
+            print(f"❌ Metadata CSV not found: {metadata_file}")
+            metadata_file = None
+    else:
+        for name in ['validated.tsv', 'test.tsv', 'dev.tsv', 'train.tsv']:
+            candidate = cv_path / name
+            if candidate.exists():
+                metadata_file = candidate
+                print(f"Found metadata file: {metadata_file}")
+                break
+
+    gt_path = Path('data/ground_truth.csv' if write_ground_truth else 'data/ground_truth_template.csv')
+    if write_ground_truth and gt_path.exists():
+        print(f"⚠️  Overwriting existing: {gt_path}")
 
     if not metadata_file:
         print("❌ No metadata file found (validated.tsv, test.tsv, dev.tsv, train.tsv)")
@@ -128,17 +142,23 @@ def organize_cv_data(
             })
 
         gt_df = pd.DataFrame(ground_truth_rows)
-        gt_path = Path('data/ground_truth_template.csv')
         gt_path.parent.mkdir(parents=True, exist_ok=True)
         gt_df.to_csv(gt_path, index=False)
 
+        if write_ground_truth:
+            template_path = Path('data/ground_truth_template.csv')
+            if template_path.exists():
+                template_path.unlink()
+
         print(f"\nCopied {len(selected)} files to {output_dir}")
-        print(f"Created ground truth template: {gt_path}")
+        label = "ground truth file" if write_ground_truth else "ground truth template"
+        print(f"Created {label}: {gt_path}")
         print("NOTE: You must fill in accent_group and true_transcript manually.")
         return {"Unknown": len(selected)}
 
     print(f"\nReading metadata from: {metadata_file}")
-    df = pd.read_csv(metadata_file, sep='\t')
+    sep = '\t' if metadata_file.suffix.lower() in ['.tsv'] else ','
+    df = pd.read_csv(metadata_file, sep=sep)
 
     # Check what columns are available
     print(f"Available columns: {list(df.columns)}")
@@ -208,7 +228,15 @@ def organize_cv_data(
                     cv_path / 'clips' / audio_rel,
                     cv_path / 'clips' / audio_rel.name,
                     cv_path.parent / 'clips' / audio_rel.name,
+                    cv_path.parent / audio_rel,
                 ]
+
+                if metadata_file:
+                    metadata_dir = metadata_file.parent
+                    possible_paths.extend([
+                        metadata_dir / audio_rel,
+                        metadata_dir / audio_rel.name,
+                    ])
 
                 src_audio = None
                 for path in possible_paths:
@@ -254,9 +282,13 @@ def organize_cv_data(
     # Save ground truth template
     if ground_truth_rows:
         gt_df = pd.DataFrame(ground_truth_rows)
-        gt_path = Path('data/ground_truth_template.csv')
         gt_path.parent.mkdir(parents=True, exist_ok=True)
         gt_df.to_csv(gt_path, index=False)
+
+        if write_ground_truth:
+            template_path = Path('data/ground_truth_template.csv')
+            if template_path.exists():
+                template_path.unlink()
 
         print(f"\n{'='*60}")
         print(f"Data organization complete!")
@@ -269,7 +301,7 @@ def organize_cv_data(
         print(f"\n{'='*60}")
         print(f"NEXT STEP: Assign intents to transcripts")
         print(f"{'='*60}")
-        print(f"\n1. Open: data/ground_truth_template.csv")
+        print(f"\n1. Open: {gt_path}")
         print(f"2. For each row, read the 'true_transcript' column")
         print(f"3. Assign 'true_intent' based on content:")
         print(f"   - Contains 'pay', 'bill', 'payment' → pay_bill")
@@ -342,6 +374,17 @@ def main():
         help='Column name for audio filename (default: path)'
     )
     parser.add_argument(
+        '--metadata_csv',
+        type=str,
+        default='',
+        help='Optional metadata CSV path (e.g., ~/Downloads/cv-valid-test.csv)'
+    )
+    parser.add_argument(
+        '--write_ground_truth',
+        action='store_true',
+        help='Write directly to data/ground_truth.csv and delete the template'
+    )
+    parser.add_argument(
         '--total_samples',
         type=int,
         default=20,
@@ -367,6 +410,8 @@ def main():
         path_column=args.path_column,
         total_samples=args.total_samples,
         allow_no_metadata=args.allow_no_metadata,
+        metadata_csv=args.metadata_csv or None,
+        write_ground_truth=args.write_ground_truth,
     )
 
 

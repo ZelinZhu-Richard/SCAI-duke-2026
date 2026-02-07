@@ -12,12 +12,22 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+import Levenshtein
 from _python_version_check import ensure_python_3_12_12
 
 # Set style
 sns.set_style("whitegrid")
 sns.set_palette("Set2")
 plt.rcParams['figure.dpi'] = 300
+
+
+def calculate_cer(reference, hypothesis):
+    if pd.isna(reference) or pd.isna(hypothesis):
+        return 1.0
+    if len(reference) == 0:
+        return 1.0 if len(hypothesis) > 0 else 0.0
+    distance = Levenshtein.distance(str(reference).lower(), str(hypothesis).lower())
+    return distance / len(reference)
 
 
 def create_cer_chart(intents_df, output_dir="visualizations"):
@@ -271,6 +281,17 @@ def main():
     # Load data
     intents_df = pd.read_csv(args.input)
     print(f"\nLoaded {len(intents_df)} samples from {len(intents_df['accent_group'].unique())} accent groups")
+
+    # Ensure CER exists (compute if missing)
+    if "cer" not in intents_df.columns:
+        if "true_transcript" in intents_df.columns and "transcribed_text" in intents_df.columns:
+            print("\nCER column missing; computing CER from transcripts...")
+            intents_df["cer"] = intents_df.apply(
+                lambda row: calculate_cer(row["true_transcript"], row["transcribed_text"]),
+                axis=1
+            )
+        else:
+            raise SystemExit("❌ Missing 'cer' and transcript columns; run calculate_metrics.py first.")
 
     # Create visualizations
     create_cer_chart(intents_df, args.output)

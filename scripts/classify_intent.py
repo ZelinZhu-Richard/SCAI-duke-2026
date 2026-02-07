@@ -9,6 +9,7 @@ Usage:
 import argparse
 import pandas as pd
 from _python_version_check import ensure_python_3_12_12
+from pathlib import Path
 
 
 def classify_intent_keyword(transcript):
@@ -165,6 +166,7 @@ def classify_all(transcripts_csv, ground_truth_csv, output_csv="results/intents.
             print(f"  {group:15s}: {by_group_before[group]:6.2f}% → {by_group_after[group]:6.2f}%")
 
     # Save results
+    Path(output_csv).parent.mkdir(parents=True, exist_ok=True)
     merged.to_csv(output_csv, index=False)
     print(f"\nResults saved to: {output_csv}")
 

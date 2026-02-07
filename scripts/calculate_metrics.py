@@ -11,6 +11,7 @@ import json
 import pandas as pd
 import Levenshtein
 from _python_version_check import ensure_python_3_12_12
+from pathlib import Path
 
 
 def calculate_cer(reference, hypothesis):
@@ -205,6 +206,7 @@ def save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, output_path
     if disparity_after is not None:
         metrics["disparity_index_after"] = disparity_after.to_dict()
 
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(metrics, f, indent=2)
 

@@ -86,6 +86,8 @@ def transcribe_all(audio_dir, model_size="tiny", output_csv="results/transcripts
 
     # Create DataFrame and save
     df = pd.DataFrame(results)
+    # Ensure output directory exists
+    Path(output_csv).parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output_csv, index=False)
 
     # Summary statistics

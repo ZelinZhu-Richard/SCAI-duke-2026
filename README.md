@@ -145,6 +145,7 @@ python scripts/organize_mozilla_cv.py \
   --output data/audio \
   --samples 5 \
   --accents us india african england \
+  --metadata_csv ~/Downloads/cv-valid-test.csv \
   --allow_no_metadata \
   --total_samples 20
 
@@ -155,12 +156,13 @@ python scripts/organize_mozilla_cv.py \
   --output data/audio \
   --samples 20 \
   --accents us india african england \
+  --metadata_csv ~/Downloads/cv-valid-test.csv \
   --allow_no_metadata \
   --total_samples 80
 ```
 
 **What this does:**
-- If metadata `*.tsv` exists: uses accent + transcript info to copy balanced samples
+- If metadata `*.tsv` or a CSV is provided: uses accent + transcript info to copy balanced samples
 - If no metadata: copies `--total_samples` audio files into `data/audio/`
 - Creates `data/ground_truth_template.csv` (you fill in missing fields)
 

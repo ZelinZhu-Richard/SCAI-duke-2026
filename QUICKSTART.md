@@ -33,6 +33,7 @@ python scripts/organize_mozilla_cv.py \
   --output data/audio \
   --samples 20 \
   --accents us india african england \
+  --metadata_csv ~/Downloads/cv-valid-test.csv \
   --allow_no_metadata \
   --total_samples 80
 
