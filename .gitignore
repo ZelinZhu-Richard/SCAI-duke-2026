@@ -1,0 +1,22 @@
+# Virtual env
+.venv/
+venv/
+env/
+
+# Data and outputs
+data/raw/
+data/processed/
+results/
+*.parquet
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# IDE / OS
+.DS_Store
+.idea/
+*.swp
