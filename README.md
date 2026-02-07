@@ -46,17 +46,21 @@ When customers call support lines, ASR systems transcribe their speech to route 
 
 ## Dataset
 
-We use curated samples from open, real-world datasets:
-- **Mozilla Common Voice** - Diverse accent and ESL speakers
-- **CallHome** - Multilingual informal speech
-- **GLOBE** - Global accent diversity
+We use curated samples from open, real-world datasets. The current pipeline and scripts are set up for:
+- **Mozilla Common Voice** - Diverse accent and ESL speakers (streaming mode)
 
-**Accent Groups Tested:**
+**Optional/Future Extensions** (not wired into the current scripts):
+- CallHome - Multilingual informal speech
+- GLOBE - Global accent diversity
+
+**Accent Groups Tested (default in `scripts/prepare_data.py`):**
 - US English (baseline)
 - Indian English
-- Spanish-accented English
-- East Asian-accented English
-- UK English
+- African English
+- UK English (England)
+- Australian English
+
+You can override the defaults with `--accents` to include Spanish-accented or East Asian-accented English if desired.
 
 ## Technology Stack
 
@@ -78,9 +82,18 @@ cd SCAI-Duke-2026
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
+# macOS: install ffmpeg (Whisper audio decoding dependency)
+# brew install ffmpeg
+
 # Install dependencies
 pip install -r requirements.txt
 ```
+
+## Dependency Safety Notes (macOS / general)
+
+- `requirements.txt` only lists standard PyPI packages (no local paths or Git URLs).
+- The data curation script uses Hugging Face `datasets` with `trust_remote_code=True`. This allows execution of dataset-provided code. If your environment policy forbids this, set `trust_remote_code=False` in `scripts/prepare_data.py` and be prepared to pin a dataset version or use a pre-downloaded dataset.
+- For extra caution, install in a fresh virtual environment and review package metadata before installing.
 
 ## Usage
 
@@ -116,28 +129,14 @@ python scripts/visualize.py --input results/metrics.json --output visualizations
 
 ### 6. Run Demo
 ```bash
-# Launch Jupyter notebook demo
-jupyter notebook demo/demo.ipynb
+# Convert template to notebook, then launch Jupyter
+# (or copy/paste the cells into a new notebook)
+jupyter notebook demo/demo_notebook_template.py
 ```
 
-## Quick Demo (All-in-One)
+## Quick Demo (Notebook Template)
 
-```python
-from benchmark import ASREquityBenchmark
-
-# Initialize benchmark
-benchmark = ASREquityBenchmark(model="whisper-tiny")
-
-# Load data
-benchmark.load_data("data/ground_truth.csv")
-
-# Run full pipeline
-results = benchmark.run()
-
-# Display results
-benchmark.show_results()
-benchmark.save_report("results/report.html")
-```
+Use `demo/demo_notebook_template.py` as a Jupyter-compatible template. It assumes you have already generated `results/intents.csv` and `visualizations/` with the scripts above.
 
 ## Project Structure
 
@@ -162,7 +161,7 @@ SCAI-Duke-2026/
 │   ├── error_by_accent.png
 │   └── intent_errors.png
 ├── demo/
-│   └── demo.ipynb          # Interactive demo notebook
+│   └── demo_notebook_template.py  # Jupyter-friendly template
 ├── requirements.txt
 ├── README.md               # This file
 ├── PLAN.md                 # Project outline
@@ -191,7 +190,7 @@ SCAI-Duke-2026/
 
 - **Pre-Hackathon**: Data curation, environment setup
 - **7-Hour Sprint**: Model execution, analysis, demo creation
-- **Submission**: 2/7 by 4PM to Devpost
+- **Submission**: February 7, 2026 by 4PM to Devpost
 
 ## Contributing
 

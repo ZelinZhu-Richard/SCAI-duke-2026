@@ -19,8 +19,10 @@ pip install -r requirements.txt
 # This will download 20 samples per accent group
 python scripts/prepare_data.py --samples 20 --output data/audio
 
-# Expected output: 80-100 audio files in data/audio/
+# Expected output (default accents): ~80 audio files in data/audio/
 ```
+
+Default accents are `us indian african england` (override with `--accents`).
 
 ### 3. Create Ground Truth Labels
 
@@ -34,7 +36,7 @@ indian_001.wav,Indian,ESL,I need to reset password,reset_password,3.4
 
 **Required columns:**
 - `filename`: Audio file name
-- `accent_group`: US, Indian, Spanish, etc.
+- `accent_group`: US, Indian, African, England, Australia (or your custom `--accents`)
 - `speaker_type`: native or ESL
 - `true_transcript`: Correct transcription
 - `true_intent`: pay_bill, reset_password, report_outage, account_info
@@ -91,14 +93,15 @@ python scripts/calculate_metrics.py \
 ```bash
 python scripts/visualize.py \
     --input results/intents.csv \
-    --output visualizations
+    --output visualizations \
+    --baseline US
 
 # Expected: 4 PNG files in visualizations/
 ```
 
 ### Hour 5-6.5: Demo & Slides
 
-1. Open `demo/demo.ipynb` in Jupyter
+1. Open `demo/demo_notebook_template.py` in Jupyter (or copy cells into a new notebook)
 2. Run all cells to create interactive demo
 3. Fill in slides with actual results from your run
 4. Practice 5-minute pitch
@@ -134,6 +137,12 @@ echo "✅ Pipeline complete! Check visualizations/ for results."
 ```bash
 # Use smaller model
 python scripts/run_whisper.py --model tiny  # fastest, ~39M params
+```
+
+### macOS: Whisper can't decode audio
+```bash
+# Install ffmpeg (required by whisper)
+brew install ffmpeg
 ```
 
 ### Dataset download fails

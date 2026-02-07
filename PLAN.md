@@ -21,7 +21,7 @@ We are creating a **proposal of a benchmark to evaluate society-centered AI**. T
 - **Impact Analysis**: Show model's initial societal impact and post-benchmark impact
 - **Hackathon Duration**: Exactly 7 hours for prototype and demo
 - **Team**: 4 high schoolers with coding knowledge and AI assistance
-- **Submission Deadline**: Devpost by 2/7, 4PM
+- **Submission Deadline**: Devpost by February 7, 2026, 4PM
 
 ### Chosen Proposal
 **Customer Support ASR Equity Benchmark**
@@ -49,19 +49,20 @@ Measure how Whisper ASR (or equivalent neural ASR models) differentially affects
 
 1. **Select 50-100 audio clips** using streaming API:
    - Mozilla Common Voice: 10-20 clips per accent group
-   - Focus on 4-5 accent groups:
+   - Focus on 4-5 accent groups (default in `scripts/prepare_data.py`):
      - US English (baseline)
      - Indian English
-     - Spanish-accented English
-     - East Asian-accented English
-     - UK English (optional)
+     - African English
+     - UK English (England)
+     - Australian English (optional)
+   - You can override defaults with `--accents` to include Spanish- or East Asian-accented English.
 
 2. **Create ground truth labels** (`data/ground_truth.csv`):
    ```csv
    filename,accent_group,speaker_type,true_transcript,true_intent,duration
    us_001.wav,US,native,"I want to pay my bill",pay_bill,3.2
    indian_001.wav,Indian,ESL,"I need to reset my password",reset_password,4.1
-   spanish_001.wav,Spanish,ESL,"My internet is not working",report_outage,3.8
+   african_001.wav,African,ESL,"My internet is not working",report_outage,3.8
    ```
 
 3. **Pre-download scripts** (run BEFORE hackathon):
@@ -433,7 +434,7 @@ def create_disparity_heatmap(disparity_df, output="visualizations/disparity_heat
 
 **Person 3 & 4: Build Jupyter Demo**
 ```python
-# demo/demo.ipynb (create as notebook)
+# demo/demo_notebook_template.py (convert to .ipynb or copy cells)
 
 """
 # Customer Support ASR Equity Benchmark - Live Demo
@@ -516,7 +517,7 @@ print(f"• Overall call misrouting rate: {misroute_rate:.1f}%")
 
 **Problem:** Automatic Speech Recognition (ASR) systems increasingly mediate access to customer support services. However, these systems exhibit differential performance across accent groups, potentially creating systemic barriers for non-native English speakers—37% of the US population.
 
-**Approach:** We developed a benchmark to quantify equity in ASR-driven customer support routing. Using [X] curated audio samples from Mozilla Common Voice spanning [Y] accent groups (US, Indian, Spanish, East Asian English), we evaluated OpenAI's Whisper model on transcription accuracy and downstream intent classification.
+**Approach:** We developed a benchmark to quantify equity in ASR-driven customer support routing. Using [X] curated audio samples from Mozilla Common Voice spanning [Y] accent groups (US, Indian, African, England, Australia), we evaluated OpenAI's Whisper model on transcription accuracy and downstream intent classification. (Accent groups are configurable via `--accents`.)
 
 **Methodology:** Our pipeline measures:
 1. Character Error Rate (CER) across accent groups
@@ -686,7 +687,7 @@ SCAI-Duke-2026/
 │   └── disparity_heatmap.png
 │
 ├── demo/
-│   └── demo.ipynb                # Jupyter notebook demo
+│   └── demo_notebook_template.py # Jupyter-friendly template
 │
 ├── deliverables/
 │   ├── abstract.txt              # 250-word abstract

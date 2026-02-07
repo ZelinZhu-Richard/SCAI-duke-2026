@@ -82,18 +82,20 @@ The original plan is **technically sound but overly ambitious** for a 7-hour hac
 1. Curate **50-100 pre-selected audio clips** from:
    - Mozilla Common Voice (10-20 clips per accent group)
    - Use Hugging Face streaming API to avoid full download
-   - Focus on 4-5 accent groups max:
+   - Focus on 4-5 accent groups max (default in `scripts/prepare_data.py`):
      - US English (baseline)
      - Indian English
-     - Spanish-accented English
-     - East Asian-accented English
-     - UK English (optional)
+     - African English
+     - UK English (England)
+     - Australian English (optional)
+   - You can override defaults with `--accents` to include Spanish- or East Asian-accented English.
 
 2. Create a **ground truth CSV** with:
    ```csv
    filename,accent_group,true_transcript,true_intent,speaker_metadata
    clip001.wav,US,I want to pay my bill,pay_bill,native
    clip002.wav,Indian,I need to reset password,reset_password,ESL
+   clip003.wav,African,My internet is not working,report_outage,ESL
    ```
 
 **During Hackathon:**
@@ -111,17 +113,18 @@ import pandas as pd
 ds = load_dataset("mozilla-foundation/common_voice_13_0", "en", split="test", streaming=True)
 
 samples = []
-accent_counts = {"us": 0, "indian": 0, "other": 0}
+target_accents = ["us", "indian", "african", "england", "australia"]
+accent_counts = {accent: 0 for accent in target_accents}
 target = 20  # per group
 
 for item in ds:
     accent = item.get("accent", "other")
-    if accent_counts.get(accent, 0) < target:
+    if accent in accent_counts and accent_counts.get(accent, 0) < target:
         samples.append(item)
         accent_counts[accent] = accent_counts.get(accent, 0) + 1
 
-    if sum(accent_counts.values()) >= 100:
-        break
+if sum(accent_counts.values()) >= target * len(target_accents):
+    break
 
 # Save samples
 pd.DataFrame(samples).to_csv("curated_samples.csv")
