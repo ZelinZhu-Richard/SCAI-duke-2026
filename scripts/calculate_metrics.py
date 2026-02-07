@@ -113,10 +113,12 @@ def compute_disparity_index(intents_df, baseline_group="US", correctness_col="in
     """
     print(f"\nCalculating Disparity Index (baseline: {baseline_group}, col: {correctness_col})...")
 
-    # Calculate error rates
-    error_rates = intents_df.groupby("accent_group").agg({
-        correctness_col: lambda x: (1 - x.mean()) * 100  # error rate as percentage
-    }).rename(columns={correctness_col: "error_rate"})
+    # Calculate smoothed error rates to avoid unstable divide-by-zero behavior
+    grouped = intents_df.groupby("accent_group")[correctness_col].agg(["sum", "count"])
+    grouped["errors"] = grouped["count"] - grouped["sum"]
+    # Jeffreys-style smoothing: (errors + 0.5) / (n + 1)
+    grouped["error_rate"] = ((grouped["errors"] + 0.5) / (grouped["count"] + 1.0)) * 100
+    error_rates = grouped[["error_rate"]]
 
     # Get baseline error rate
     if baseline_group not in error_rates.index:
@@ -124,10 +126,6 @@ def compute_disparity_index(intents_df, baseline_group="US", correctness_col="in
         baseline_group = error_rates.index[0]
 
     baseline_error = error_rates.loc[baseline_group, "error_rate"]
-
-    if baseline_error == 0:
-        print(f"⚠️  Warning: Baseline error rate is 0. Setting to 0.01 to avoid division by zero.")
-        baseline_error = 0.01
 
     # Calculate disparity index
     error_rates["disparity_index"] = (error_rates["error_rate"] / baseline_error).round(2)
@@ -186,7 +184,18 @@ def find_failure_examples(intents_df, num_examples=5):
     return failures, successes
 
 
-def save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, output_path, accuracy_after=None, disparity_after=None):
+def save_metrics_json(
+    cer_by_group,
+    accuracy_by_group,
+    disparity_df,
+    output_path,
+    accuracy_after=None,
+    disparity_after=None,
+    known_accuracy_by_group=None,
+    known_disparity_df=None,
+    known_accuracy_after=None,
+    known_disparity_after=None,
+):
     """
     Save all metrics to JSON file for easy loading
 
@@ -208,6 +217,14 @@ def save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, output_path
         metrics["accuracy_by_group_after"] = accuracy_after.to_dict()
     if disparity_after is not None:
         metrics["disparity_index_after"] = disparity_after.to_dict()
+    if known_accuracy_by_group is not None:
+        metrics["known_accuracy_by_group"] = known_accuracy_by_group.to_dict()
+    if known_disparity_df is not None:
+        metrics["known_disparity_index"] = known_disparity_df.to_dict()
+    if known_accuracy_after is not None:
+        metrics["known_accuracy_by_group_after"] = known_accuracy_after.to_dict()
+    if known_disparity_after is not None:
+        metrics["known_disparity_index_after"] = known_disparity_after.to_dict()
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
@@ -263,11 +280,41 @@ def main():
         accuracy_after = compute_intent_accuracy(intents_df, correctness_col="intent_correct_after")
         disparity_after = compute_disparity_index(intents_df, baseline_group=args.baseline, correctness_col="intent_correct_after")
 
+    # Known-intent-only metrics (exclude rows where true_intent == "unknown")
+    known_accuracy = None
+    known_disparity = None
+    known_accuracy_after = None
+    known_disparity_after = None
+    if "true_intent" in intents_df.columns:
+        known_subset = intents_df[intents_df["true_intent"].astype(str).str.lower() != "unknown"]
+        if len(known_subset) > 0:
+            print(f"\nKnown-intent subset size: {len(known_subset)} / {len(intents_df)}")
+            known_accuracy = compute_intent_accuracy(known_subset, correctness_col="intent_correct")
+            known_disparity = compute_disparity_index(known_subset, baseline_group=args.baseline, correctness_col="intent_correct")
+            if "intent_correct_after" in known_subset.columns:
+                known_accuracy_after = compute_intent_accuracy(known_subset, correctness_col="intent_correct_after")
+                known_disparity_after = compute_disparity_index(
+                    known_subset, baseline_group=args.baseline, correctness_col="intent_correct_after"
+                )
+        else:
+            print("\nKnown-intent subset size: 0 (all true_intent are 'unknown')")
+
     # Find examples
     find_failure_examples(intents_df)
 
     # Save metrics
-    save_metrics_json(cer_by_group, accuracy_by_group, disparity_df, args.output, accuracy_after, disparity_after)
+    save_metrics_json(
+        cer_by_group,
+        accuracy_by_group,
+        disparity_df,
+        args.output,
+        accuracy_after,
+        disparity_after,
+        known_accuracy,
+        known_disparity,
+        known_accuracy_after,
+        known_disparity_after,
+    )
 
     # Overall summary
     print(f"\n{'='*70}")

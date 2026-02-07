@@ -148,6 +148,7 @@ def classify_all(transcripts_csv, ground_truth_csv, output_csv="results/intents.
     merged["transcribed_text_normalized"] = merged["transcribed_text"].apply(normalize_transcript)
     merged["predicted_intent_after"] = merged["transcribed_text_normalized"].apply(classify_intent_keyword)
     merged["intent_correct_after"] = merged["predicted_intent_after"] == merged["true_intent"]
+    merged["known_intent"] = merged["true_intent"].astype(str).str.lower() != "unknown"
 
     # Calculate basic stats
     accuracy = merged["intent_correct"].mean() * 100
@@ -159,6 +160,21 @@ def classify_all(transcripts_csv, ground_truth_csv, output_csv="results/intents.
     print(f"Overall Intent Accuracy (after):  {accuracy_after:.2f}%")
     print(f"Correct: {merged['intent_correct'].sum()}")
     print(f"Incorrect: {(~merged['intent_correct']).sum()}")
+
+    unknown_ratio = (~merged["known_intent"]).mean() * 100
+    print(f"Unknown-label share: {unknown_ratio:.1f}%")
+    if unknown_ratio > 50:
+        print("⚠️  Warning: Most labels are 'unknown'.")
+        print("   Overall accuracy may be inflated because unknown→unknown counts as correct.")
+
+    known_subset = merged[merged["known_intent"]]
+    if len(known_subset) > 0:
+        known_acc_before = known_subset["intent_correct"].mean() * 100
+        known_acc_after = known_subset["intent_correct_after"].mean() * 100
+        print(f"Known-intent Accuracy (before): {known_acc_before:.2f}%")
+        print(f"Known-intent Accuracy (after):  {known_acc_after:.2f}%")
+    else:
+        print("Known-intent Accuracy: N/A (no non-'unknown' labels)")
 
     # Accuracy by accent group
     if "accent_group" in merged.columns:

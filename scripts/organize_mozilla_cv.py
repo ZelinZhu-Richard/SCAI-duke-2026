@@ -26,6 +26,7 @@ SYNONYMS = {
     "Australian": ["australian", "australia"],
     "Canadian": ["canadian", "canada"],
 }
+ALLOWED_AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".m4a", ".ogg"}
 
 
 def _normalize(s):
@@ -224,6 +225,10 @@ def organize_cv_data(
                 if not audio_filename:
                     continue
                 audio_rel = Path(str(audio_filename))
+                # Treat metadata paths as untrusted input:
+                # do not allow absolute paths or parent traversal.
+                if audio_rel.is_absolute() or ".." in audio_rel.parts:
+                    audio_rel = Path(audio_rel.name)
 
                 # Try multiple possible locations
                 possible_paths = [
@@ -248,6 +253,9 @@ def organize_cv_data(
                         break
 
                 if not src_audio:
+                    continue
+
+                if src_audio.suffix.lower() not in ALLOWED_AUDIO_EXTENSIONS:
                     continue
 
                 # Keep original extension (mp3/wav)

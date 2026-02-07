@@ -96,14 +96,14 @@ def curate_samples(
                 config_name,
                 split=split,
                 streaming=True,
-                use_auth_token=hf_token if hf_token else None,
+                token=hf_token if hf_token else None,
             )
         else:
             ds = load_dataset(
                 dataset_name,
                 split=split,
                 streaming=True,
-                use_auth_token=hf_token if hf_token else None,
+                token=hf_token if hf_token else None,
             )
     except EmptyDatasetError as e:
         print("\n❌ Dataset appears to be empty.")

@@ -8,7 +8,20 @@ Usage:
 
 import argparse
 import os
+import tempfile
+from pathlib import Path
 import pandas as pd
+
+# Ensure writable cache dirs in restricted environments.
+home_mpl = Path.home() / ".matplotlib"
+if not os.access(home_mpl.parent, os.W_OK):
+    os.environ.setdefault("MPLCONFIGDIR", os.path.join(tempfile.gettempdir(), "mplconfig"))
+if not os.access(Path.home() / ".cache", os.W_OK):
+    os.environ.setdefault("XDG_CACHE_HOME", os.path.join(tempfile.gettempdir(), "xdg_cache"))
+
+import matplotlib
+# Use a non-interactive backend so chart generation works in headless environments.
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -37,17 +50,25 @@ def coerce_bool(series):
     """
     Robust bool conversion for columns that may be bool, numeric, or strings.
     """
+    if pd.api.types.is_bool_dtype(series):
+        return series
+
     lowered = series.astype(str).str.strip().str.lower()
     truthy = {"true", "1", "yes", "y"}
     falsy = {"false", "0", "no", "n"}
-    coerced = lowered.map(lambda x: True if x in truthy else (False if x in falsy else None))
-    if coerced.isna().any():
-        # Fall back to pandas truthiness rules for any unmatched values
-        coerced = series.astype(bool)
-    return coerced
+    mapped = lowered.map(lambda x: True if x in truthy else (False if x in falsy else pd.NA))
+
+    if mapped.isna().any():
+        unmatched = sorted(set(lowered[mapped.isna()].tolist()))
+        raise ValueError(
+            f"Unrecognized boolean values in intent column: {unmatched[:5]}. "
+            "Expected values like True/False, 1/0, yes/no."
+        )
+
+    return mapped.astype(bool)
 
 
-def create_cer_chart(intents_df, output_dir="visualizations"):
+def create_cer_chart(intents_df, output_dir="visualizations", baseline_group="US"):
     """
     Bar chart: Character Error Rate by Accent Group
 
@@ -76,10 +97,11 @@ def create_cer_chart(intents_df, output_dir="visualizations"):
     ax.set_title("ASR Transcription Accuracy by Accent Group\n(Lower is Better)",
                  fontsize=16, fontweight="bold", pad=20)
 
-    # Add baseline reference line (assuming first group is baseline)
-    baseline_cer = cer_means.iloc[0]
+    # Add baseline reference line
+    baseline_label = baseline_group if baseline_group in groups else groups[0]
+    baseline_cer = cer_means.loc[baseline_label]
     ax.axhline(y=baseline_cer, color="red", linestyle="--", linewidth=2,
-               label=f"Baseline ({groups[0]}): {baseline_cer:.1f}%", alpha=0.7)
+               label=f"Baseline ({baseline_label}): {baseline_cer:.1f}%", alpha=0.7)
 
     # Add value labels on bars
     for bar in bars:
@@ -173,22 +195,17 @@ def create_disparity_heatmap(intents_df, baseline_group="US", output_dir="visual
     """
     print("\nCreating Disparity Index heatmap...")
 
-    # Calculate error rates and disparity index
-    error_rates = intents_df.groupby("accent_group").agg({
-        "intent_correct": lambda x: (1 - x.mean()) * 100
-    }).rename(columns={"intent_correct": "error_rate"})
+    # Use smoothed error rates to avoid divide-by-zero explosions on small samples.
+    grouped = intents_df.groupby("accent_group")["intent_correct"].agg(["sum", "count"])
+    grouped["errors"] = grouped["count"] - grouped["sum"]
+    grouped["error_rate"] = ((grouped["errors"] + 0.5) / (grouped["count"] + 1.0)) * 100
+    error_rates = grouped[["error_rate"]]
 
     if baseline_group not in error_rates.index:
         baseline_group = error_rates.index[0]
 
     baseline_error = error_rates.loc[baseline_group, "error_rate"]
-    if baseline_error == 0 and (error_rates["error_rate"] == 0).all():
-        # All groups have perfect intent accuracy; represent equal disparity explicitly.
-        error_rates["disparity_index"] = 1.0
-    else:
-        if baseline_error == 0:
-            baseline_error = 0.01
-        error_rates["disparity_index"] = error_rates["error_rate"] / baseline_error
+    error_rates["disparity_index"] = error_rates["error_rate"] / baseline_error
 
     # Sort by disparity index
     error_rates = error_rates.sort_values("disparity_index")
@@ -217,7 +234,7 @@ def create_disparity_heatmap(intents_df, baseline_group="US", output_dir="visual
     plt.close()
 
 
-def create_combined_summary(intents_df, output_dir="visualizations"):
+def create_combined_summary(intents_df, output_dir="visualizations", intent_df=None):
     """
     Create a combined summary figure with multiple subplots
 
@@ -226,6 +243,9 @@ def create_combined_summary(intents_df, output_dir="visualizations"):
         output_dir (str): Output directory for chart
     """
     print("\nCreating combined summary figure...")
+
+    if intent_df is None:
+        intent_df = intents_df
 
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     fig.suptitle("ASR Equity Benchmark: Complete Analysis", fontsize=18, fontweight="bold", y=0.995)
@@ -241,7 +261,7 @@ def create_combined_summary(intents_df, output_dir="visualizations"):
 
     # 2. Intent accuracy by group
     ax2 = axes[0, 1]
-    accuracy_by_group = intents_df.groupby("accent_group")["intent_correct"].mean() * 100
+    accuracy_by_group = intent_df.groupby("accent_group")["intent_correct"].mean() * 100
     accuracy_by_group = accuracy_by_group.sort_values()
     accuracy_by_group.plot(kind="bar", ax=ax2, color=sns.color_palette("Greens", len(accuracy_by_group)))
     ax2.set_title("Intent Classification Accuracy", fontsize=14, fontweight="bold")
@@ -258,18 +278,29 @@ def create_combined_summary(intents_df, output_dir="visualizations"):
     ax3.set_xlabel("Number of Samples", fontsize=12)
     ax3.set_ylabel("Accent Group", fontsize=12)
 
-    # 4. Error distribution scatter
+    # 4. Error distribution scatter (always show all samples)
     ax4 = axes[1, 1]
-    for group in intents_df["accent_group"].unique():
-        group_data = intents_df[intents_df["accent_group"] == group]
-        ax4.scatter(group_data["cer"] * 100,
-                   group_data["intent_correct"].astype(int),
-                   alpha=0.6, s=100, label=group)
-    ax4.set_title("CER vs Intent Correctness", fontsize=14, fontweight="bold")
+    scatter_df = intents_df.copy()
+    rng = np.random.default_rng(42)
+    scatter_df["intent_y"] = (
+        scatter_df["intent_correct"].astype(int)
+        + rng.uniform(-0.08, 0.08, size=len(scatter_df))
+    )
+    for group in scatter_df["accent_group"].unique():
+        group_data = scatter_df[scatter_df["accent_group"] == group]
+        ax4.scatter(
+            group_data["cer"] * 100,
+            group_data["intent_y"],
+            alpha=0.6,
+            s=70,
+            label=group
+        )
+    ax4.set_title("CER vs Intent Correctness (All Samples)", fontsize=14, fontweight="bold")
     ax4.set_xlabel("Character Error Rate (%)", fontsize=12)
     ax4.set_ylabel("Intent Correct", fontsize=12)
     ax4.set_yticks([0, 1])
     ax4.set_yticklabels(["Incorrect", "Correct"])
+    ax4.set_ylim(-0.25, 1.25)
     ax4.legend()
     ax4.grid(alpha=0.3)
 
@@ -324,6 +355,19 @@ def main():
         raise SystemExit("❌ Missing 'intent_correct' column; run classify_intent.py first.")
     intents_df["intent_correct"] = coerce_bool(intents_df["intent_correct"])
 
+    # Use known-intent subset for intent/disparity plots when available.
+    intent_eval_df = intents_df
+    if "true_intent" in intents_df.columns:
+        known_subset = intents_df[intents_df["true_intent"].astype(str).str.lower() != "unknown"].copy()
+        if len(known_subset) > 0:
+            intent_eval_df = known_subset
+            print(
+                f"\nUsing known-intent subset for intent/disparity plots: "
+                f"{len(intent_eval_df)} / {len(intents_df)} rows"
+            )
+        else:
+            print("\nNo known-intent rows found; using full dataset for intent/disparity plots.")
+
     # Ensure CER exists (compute if missing)
     if "cer" not in intents_df.columns:
         if "true_transcript" in intents_df.columns and "transcribed_text" in intents_df.columns:
@@ -335,11 +379,20 @@ def main():
         else:
             raise SystemExit("❌ Missing 'cer' and transcript columns; run calculate_metrics.py first.")
 
+    # Keep intent-eval subset aligned with CER column used by plots.
+    if "cer" not in intent_eval_df.columns:
+        intent_eval_df = intent_eval_df.merge(
+            intents_df[["filename", "cer"]],
+            on="filename",
+            how="left",
+            suffixes=("", "_from_full"),
+        )
+
     # Create visualizations
-    create_cer_chart(intents_df, args.output)
-    create_intent_error_chart(intents_df, args.output)
-    create_disparity_heatmap(intents_df, args.baseline, args.output)
-    create_combined_summary(intents_df, args.output)
+    create_cer_chart(intents_df, args.output, args.baseline)
+    create_intent_error_chart(intent_eval_df, args.output)
+    create_disparity_heatmap(intent_eval_df, args.baseline, args.output)
+    create_combined_summary(intents_df, args.output, intent_eval_df)
 
     print(f"\n{'='*70}")
     print(f"✅ All visualizations created successfully!")
