@@ -1,0 +1,7 @@
+filename,accent_group,speaker_type,true_transcript,true_intent,duration
+us_001.wav,US,native,I want to pay my bill,pay_bill,3.2
+us_002.wav,US,native,I need to reset my password,reset_password,2.8
+us_003.wav,US,native,My internet is not working,report_outage,3.5
+indian_001.wav,Indian,ESL,I want to pay my bill,pay_bill,3.4
+indian_002.wav,Indian,ESL,I need account information,account_info,3.1
+spanish_001.wav,Spanish,ESL,My service is down,report_outage,2.9

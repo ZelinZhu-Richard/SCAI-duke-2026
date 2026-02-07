@@ -1,0 +1,200 @@
+# Quick Start Guide - ASR Equity Benchmark
+
+## Pre-Hackathon Setup (DO THIS NOW!)
+
+### 1. Install Dependencies
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install all dependencies
+pip install -r requirements.txt
+```
+
+### 2. Curate Data (CRITICAL - Do before hackathon!)
+
+```bash
+# This will download 20 samples per accent group
+python scripts/prepare_data.py --samples 20 --output data/audio
+
+# Expected output: 80-100 audio files in data/audio/
+```
+
+### 3. Create Ground Truth Labels
+
+Manually transcribe each audio file and fill in `data/ground_truth.csv`:
+
+```csv
+filename,accent_group,speaker_type,true_transcript,true_intent,duration
+us_001.wav,US,native,I want to pay my bill,pay_bill,3.2
+indian_001.wav,Indian,ESL,I need to reset password,reset_password,3.4
+```
+
+**Required columns:**
+- `filename`: Audio file name
+- `accent_group`: US, Indian, Spanish, etc.
+- `speaker_type`: native or ESL
+- `true_transcript`: Correct transcription
+- `true_intent`: pay_bill, reset_password, report_outage, account_info
+- `duration`: Audio length in seconds
+
+---
+
+## During Hackathon (7-Hour Sprint)
+
+### Hour 0-1: Setup & Verification
+
+```bash
+# Verify all files are ready
+ls data/audio/*.wav | wc -l  # Should show ~50-100 files
+head data/ground_truth.csv    # Should show all labels
+
+# Test imports
+python -c "import whisper; import pandas; import matplotlib; print('✅ All imports work!')"
+```
+
+### Hour 1-2.5: Run ASR Transcription
+
+```bash
+# Use 'tiny' model for speed (5-10s per clip on CPU)
+python scripts/run_whisper.py --model tiny --input data/audio --output results/transcripts.csv
+
+# Expected: results/transcripts.csv with all transcriptions
+```
+
+### Hour 2-3: Classify Intents
+
+```bash
+python scripts/classify_intent.py \
+    --transcripts results/transcripts.csv \
+    --ground_truth data/ground_truth.csv \
+    --output results/intents.csv
+
+# Expected: results/intents.csv with intent predictions
+```
+
+### Hour 3-4: Calculate Metrics
+
+```bash
+python scripts/calculate_metrics.py \
+    --input results/intents.csv \
+    --output results/metrics.json \
+    --baseline US
+
+# Expected: Console output with CER, accuracy, disparity index
+```
+
+### Hour 4-5: Create Visualizations
+
+```bash
+python scripts/visualize.py \
+    --input results/intents.csv \
+    --output visualizations
+
+# Expected: 4 PNG files in visualizations/
+```
+
+### Hour 5-6.5: Demo & Slides
+
+1. Open `demo/demo.ipynb` in Jupyter
+2. Run all cells to create interactive demo
+3. Fill in slides with actual results from your run
+4. Practice 5-minute pitch
+
+### Hour 6.5-7: Submit to Devpost
+
+1. Final check: Run all scripts end-to-end
+2. Export slides to PDF
+3. Upload to Devpost with abstract
+4. Backup to GitHub
+
+---
+
+## All-in-One Pipeline
+
+If everything is set up correctly, you can run the entire pipeline:
+
+```bash
+# Run complete pipeline
+python scripts/run_whisper.py --model tiny --input data/audio --output results/transcripts.csv && \
+python scripts/classify_intent.py --transcripts results/transcripts.csv --ground_truth data/ground_truth.csv --output results/intents.csv && \
+python scripts/calculate_metrics.py --input results/intents.csv --output results/metrics.json && \
+python scripts/visualize.py --input results/intents.csv --output visualizations
+
+echo "✅ Pipeline complete! Check visualizations/ for results."
+```
+
+---
+
+## Troubleshooting
+
+### Whisper is too slow
+```bash
+# Use smaller model
+python scripts/run_whisper.py --model tiny  # fastest, ~39M params
+```
+
+### Dataset download fails
+```bash
+# Reduce sample size
+python scripts/prepare_data.py --samples 10  # Minimum viable
+```
+
+### Intent classification all wrong
+- Check keyword definitions in `scripts/classify_intent.py`
+- Make sure ground truth intents match: pay_bill, reset_password, report_outage, account_info
+
+### Missing ground truth data
+- CSV must have exact matching filenames
+- Check for typos in filename column
+- Verify CSV loads: `pandas.read_csv('data/ground_truth.csv')`
+
+---
+
+## Team Roles Checklist
+
+### Person 1: Data & ASR Lead
+- [ ] Pre-hackathon: Run prepare_data.py
+- [ ] Hour 0-1: Verify audio files
+- [ ] Hour 1-2.5: Run Whisper transcription
+- [ ] Hour 2.5-4: Calculate CER metrics
+- [ ] Hour 4-5.5: Create visualizations
+
+### Person 2: Metrics & Analysis Lead
+- [ ] Pre-hackathon: Test all dependencies
+- [ ] Hour 0-1: Verify imports work
+- [ ] Hour 1-2.5: Assist with transcription
+- [ ] Hour 2.5-4: Calculate accuracy & disparity
+- [ ] Hour 5.5-6.5: Draft abstract
+
+### Person 3: Intent Classification & Demo Lead
+- [ ] Pre-hackathon: Define intent keywords
+- [ ] Hour 0-1: Set up intent classifier
+- [ ] Hour 1-2.5: Implement classification
+- [ ] Hour 2.5-4: Find failure examples
+- [ ] Hour 4-5.5: Build Jupyter demo
+
+### Person 4: Documentation & Integration Lead
+- [ ] Pre-hackathon: Create ground_truth.csv
+- [ ] Hour 0-1: Verify all data labels
+- [ ] Hour 1-2.5: QA all outputs
+- [ ] Hour 2.5-4: Aggregate results
+- [ ] Hour 5.5-6.5: Create slides & submit
+
+---
+
+## Success Checklist
+
+By end of 7 hours, you MUST have:
+- [x] 50+ audio files transcribed
+- [x] Intent classification results
+- [x] 3 core metrics (CER, accuracy, disparity)
+- [x] 2-3 visualizations
+- [x] Jupyter demo with examples
+- [x] 5-slide deck
+- [x] <250 word abstract
+- [x] Devpost submission
+
+**You got this! 🚀**

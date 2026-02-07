@@ -1,0 +1,29 @@
+# Core ASR and ML
+openai-whisper==20231117
+torch>=2.0.0
+torchaudio>=2.0.0
+transformers>=4.30.0
+
+# Dataset handling
+datasets>=2.14.0
+soundfile>=0.12.0
+librosa>=0.10.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Metrics
+python-Levenshtein>=0.21.0
+jiwer>=3.0.0
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Jupyter for demo
+jupyter>=1.0.0
+ipython>=8.0.0
+
+# Utilities
+tqdm>=4.65.0
