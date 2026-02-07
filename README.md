@@ -12,7 +12,7 @@ ASR-EAS is a benchmark and prototype pipeline that measures how ASR errors in cu
 - **ffmpeg** (e.g. `brew install ffmpeg` on macOS)
 - On macOS: use a fresh venv and `pip install -r requirements.txt` (avoids numba/llvmlite build issues).
 
-## Quickstart (small demo, ~14 MB)
+## Quickstart (default: LibriSpeech parquet)
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
@@ -45,8 +45,8 @@ python scripts/eval_intent.py --config configs/noise.json --use_whisper
 - Some conversational datasets have restrictive licenses.
 
 ## Dataset options
-- **default / small** (`configs/default.json`): LibriSpeech ASR dummy — ~14 MB, quick demo.
-- **GLOBE** (`configs/globe.json`): English with global accents — larger download (parquet shards mean 100s of MB even for a subset). Use when you need accent/subgroup evaluation.
+- **default / small** (`configs/default.json`): openslr/librispeech_asr (parquet, no loading script). First run downloads train/validation/test splits.
+- **GLOBE** (`configs/globe.json`): MushanW/GLOBE with max_* subset — accent/subgroup evaluation (larger download).
 
 ## License Notes
 Mozilla Common Voice is available under CC0 with terms in the dataset card. If you use Switchboard/CallHome/AMI, confirm licensing and distribution rules separately.

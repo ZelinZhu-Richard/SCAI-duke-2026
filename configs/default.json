@@ -1,0 +1,36 @@
+{
+  "dataset": {
+    "name": "openslr/librispeech_asr",
+    "split": {
+      "train": "train.clean.100",
+      "validation": "validation.clean",
+      "test": "test.clean"
+    },
+    "split_train": "train",
+    "split_valid": "validation",
+    "split_test": "test",
+    "text_field": "text",
+    "audio_field": "audio",
+    "subgroup_fields": []
+  },
+  "paths": {
+    "raw_dir": "data/raw",
+    "processed_dir": "data/processed",
+    "results_dir": "results"
+  },
+  "asr": {
+    "model_size": "base",
+    "language": "en"
+  },
+  "intent": {
+    "label_set": ["billing", "outage", "fraud", "password_reset", "cancel_service", "speak_to_agent"],
+    "max_length": 128,
+    "epochs": 3,
+    "batch_size": 8
+  },
+  "robustness": {
+    "snr_db": 10,
+    "codec": "none"
+  },
+  "seed": 13
+}

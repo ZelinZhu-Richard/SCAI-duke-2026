@@ -1,0 +1,34 @@
+{
+  "dataset": {
+    "name": "MushanW/GLOBE",
+    "split_train": "train",
+    "split_valid": "val",
+    "split_test": "test",
+    "text_field": "transcript",
+    "audio_field": "audio",
+    "subgroup_fields": ["accent", "gender", "age"],
+    "max_train": 400,
+    "max_val": 80,
+    "max_test": 120
+  },
+  "paths": {
+    "raw_dir": "data/raw",
+    "processed_dir": "data/processed",
+    "results_dir": "results"
+  },
+  "asr": {
+    "model_size": "base",
+    "language": "en"
+  },
+  "intent": {
+    "label_set": ["billing", "outage", "fraud", "password_reset", "cancel_service", "speak_to_agent"],
+    "max_length": 128,
+    "epochs": 3,
+    "batch_size": 8
+  },
+  "robustness": {
+    "snr_db": 10,
+    "codec": "none"
+  },
+  "seed": 13
+}

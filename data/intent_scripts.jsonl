@@ -1,0 +1,6 @@
+{"intent": "billing", "keywords": ["bill", "billing", "charge", "payment", "refund"]}
+{"intent": "outage", "keywords": ["outage", "down", "no service", "internet", "power"]}
+{"intent": "fraud", "keywords": ["fraud", "scam", "suspicious", "unauthorized"]}
+{"intent": "password_reset", "keywords": ["password", "reset", "login", "account locked"]}
+{"intent": "cancel_service", "keywords": ["cancel", "close account", "terminate", "end service"]}
+{"intent": "speak_to_agent", "keywords": ["agent", "representative", "human", "operator"]}

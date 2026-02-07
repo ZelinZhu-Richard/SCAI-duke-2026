@@ -1,0 +1,10 @@
+numpy<2
+faster-whisper
+datasets
+transformers
+torch
+jiwer
+soundfile
+pandas
+scikit-learn
+tqdm
