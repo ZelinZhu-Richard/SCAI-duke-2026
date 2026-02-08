@@ -23,6 +23,7 @@ import matplotlib
 # Use a non-interactive backend so chart generation works in headless environments.
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 import seaborn as sns
 import numpy as np
 import Levenshtein
@@ -312,6 +313,52 @@ def create_combined_summary(intents_df, output_dir="visualizations", intent_df=N
     plt.close()
 
 
+def create_uml_diagram(output_dir="visualizations"):
+    """
+    Simple UML-style diagram of the benchmark pipeline.
+    """
+    print("\nCreating UML diagram...")
+
+    fig, ax = plt.subplots(figsize=(12, 4))
+    ax.axis("off")
+
+    boxes = [
+        ("Audio\n(Mozilla + HF)", 0.05),
+        ("Whisper ASR\nTranscription", 0.27),
+        ("Transcripts\nCSV", 0.49),
+        ("Intent\nClassification", 0.71),
+        ("Metrics +\nVisuals", 0.90),
+    ]
+
+    for label, x in boxes:
+        rect = FancyBboxPatch(
+            (x, 0.35), 0.18, 0.30,
+            boxstyle="round,pad=0.02",
+            linewidth=1.5,
+            edgecolor="#333333",
+            facecolor="#f2f2f2",
+        )
+        ax.add_patch(rect)
+        ax.text(x + 0.09, 0.50, label, ha="center", va="center", fontsize=10, fontweight="bold")
+
+    for i in range(len(boxes) - 1):
+        x0 = boxes[i][1] + 0.18
+        x1 = boxes[i + 1][1]
+        arrow = FancyArrowPatch(
+            (x0, 0.50), (x1, 0.50),
+            arrowstyle="->", mutation_scale=12, linewidth=1.5, color="#333333"
+        )
+        ax.add_patch(arrow)
+
+    ax.set_title("ASR Equity Benchmark UML Diagram", fontsize=14, fontweight="bold", pad=12)
+
+    output_path = os.path.join(output_dir, "uml_diagram.png")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    print(f"  ✅ Saved: {output_path}")
+    plt.close()
+
+
 def main():
     ensure_python_3_12_12()
     parser = argparse.ArgumentParser(
@@ -393,6 +440,7 @@ def main():
     create_intent_error_chart(intent_eval_df, args.output)
     create_disparity_heatmap(intent_eval_df, args.baseline, args.output)
     create_combined_summary(intents_df, args.output, intent_eval_df)
+    create_uml_diagram(args.output)
 
     print(f"\n{'='*70}")
     print(f"✅ All visualizations created successfully!")
@@ -402,6 +450,7 @@ def main():
     print(f"  - intent_errors.png")
     print(f"  - disparity_heatmap.png")
     print(f"  - summary_dashboard.png")
+    print(f"  - uml_diagram.png")
 
 
 if __name__ == "__main__":
